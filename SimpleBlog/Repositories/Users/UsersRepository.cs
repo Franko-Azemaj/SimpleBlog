@@ -1,8 +1,6 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SimpleBlog.Application.Users;
 using SimpleBlog.Repositories.DatabaseContext;
-
 namespace SimpleBlog.Repositories.Users;
 
 public class UsersRepository

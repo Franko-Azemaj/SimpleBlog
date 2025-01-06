@@ -1,5 +1,4 @@
 ﻿using SimpleBlog.Repositories.Users;
-
 namespace SimpleBlog.Application.Users;
 
 public class UsersService
@@ -16,7 +15,7 @@ public class UsersService
 
         var passParameters = PasswordManager.GeneratePaswordHashAndSalt(userReq.Password);
 
-        var user = User.CreateNew(userReq.Username, userReq.Email, userReq.FirstName, passParameters.hash, passParameters.salt, userReq.LastName,RoleCode.Contributor);
+        var user = User.CreateNew(userReq.Username, userReq.Email, userReq.FirstName, userReq.LastName, passParameters.hash, passParameters.salt, RoleCode.Contributor);
         var addedUser = await _usersRepository.RegisterUserAsync(user);
         return addedUser;
     }
@@ -24,7 +23,7 @@ public class UsersService
     public async Task<IReadOnlyList<User>> GetUsersAsyns(User currentUser)
     {
         currentUser.Role.AssertPermission(Permission.UserRead);
-        
+
         throw new NotImplementedException();
     }
 
@@ -32,12 +31,12 @@ public class UsersService
     {
         var user = await _usersRepository.GetUserByEmailAsync(email);
 
-        if(user is null)
+        if (user is null)
             throw new ArgumentNullException($"User with email: {email} could not be found");
 
         var isCorrect = PasswordManager.VerifyPasword(password, user.PasswordHash, user.PasswordSalt);
 
-        if(isCorrect)
+        if (isCorrect)
             return user;
 
         return null;

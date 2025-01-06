@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using SimpleBlog.Application.Posts;
-using SimpleBlog.Application.Users;
 using SimpleBlog.Repositories.DatabaseContext;
 
 namespace SimpleBlog.Repositories.Posts;
@@ -16,8 +14,15 @@ public class PostsRepository
 
     public async Task<Post> CreatePostAsync(Post post)
     {
+        var catIds = await _context.Categories.Select(cat => cat.Id).ToListAsync();
+        var invalidIds = post.CategoryIds.Except(catIds).ToList();
+
+        if (invalidIds.Any())
+        {
+            throw new ArgumentException($"Category with id {invalidIds[0]} does not exist");
+        }
+
         var postEntity = PostEntity.From(post);
-        
         _context.Posts.Add(postEntity);
         await _context.SaveChangesAsync();
         return postEntity.ToPost();
@@ -32,7 +37,7 @@ public class PostsRepository
         if (postEntity is null)
             throw new ArgumentException("Post object does not exist");
 
-        if(post.AuthorId != postEntity.AuthorId)
+        if (post.AuthorId != postEntity.AuthorId)
             throw new ArgumentException("AuthorId does not match!");
 
         postEntity.Status = (int)post.Status;
@@ -40,16 +45,16 @@ public class PostsRepository
         postEntity.Content = post.Content;
 
         // Deleted Categories
-        var deteltedCategoreis = postEntity.Categories
+        var deletedCategoreis = postEntity.Categories
             .Where(c => !post.CategoryIds.Contains(c.CategoryId))
             .ToList();
 
-        if (deteltedCategoreis.Any())
-            _context.CategoryPostRelations.RemoveRange(deteltedCategoreis);
+        if (deletedCategoreis.Any())
+            _context.CategoryPostRelations.RemoveRange(deletedCategoreis);
 
         // Added Categories
-        var existingCategoryIds = postEntity.Categories.Select(x=>x.CategoryId).ToList();    
-        var addedCategoryIds = post.CategoryIds.Where(c=> !existingCategoryIds.Contains(c)).ToList();
+        var existingCategoryIds = postEntity.Categories.Select(x => x.CategoryId).ToList();
+        var addedCategoryIds = post.CategoryIds.Where(c => !existingCategoryIds.Contains(c)).ToList();
         var addedCategories = addedCategoryIds
             .Select(id => new CategoryPostRelationEntity
             {
@@ -75,7 +80,7 @@ public class PostsRepository
             return;
 
         _context.Posts.Remove(postEntity);
-        _context.CategoryPostRelations.RemoveRange(postEntity.Categories);  
+        _context.CategoryPostRelations.RemoveRange(postEntity.Categories);
         await _context.SaveChangesAsync();
     }
 
@@ -105,7 +110,7 @@ public class PostsRepository
 
         var postEntities = await query.ToListAsync();
 
-        var posts = postEntities.Select(p => p.ToPost()).ToList();  
+        var posts = postEntities.Select(p => p.ToPost()).ToList();
         return posts;
     }
 
@@ -138,7 +143,7 @@ public class PostsRepository
     public async Task DeleteCategoryAsync(int id)
     {
         var categoryEntity = await _context.Categories
-            .Include(c=>c.Posts.Take(1))
+            .Include(c => c.Posts.Take(1))
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (categoryEntity.Posts.Any())
